@@ -1,5 +1,6 @@
 using BlazorApp1;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using System.Net.Http;
 
@@ -18,7 +19,8 @@ builder.Services.AddOidcAuthentication(options =>
 //builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiServer) });
 
 builder.Services.AddHttpClient("WebAPI",
-        client => client.BaseAddress = new Uri(apiServer));
+        client => client.BaseAddress = new Uri(apiServer))
+    .AddHttpMessageHandler<BaseAddressAuthorizationMessageHandler>();
 
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>()
     .CreateClient("WebAPI"));
