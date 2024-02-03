@@ -1,10 +1,44 @@
+using Microsoft.IdentityModel.Logging;
+using Microsoft.OpenApi.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddCors();
+
+builder.Services.AddAuthentication().AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;   // NOTE: This is to support Keycloak on HTTP
+});
+builder.Services.AddAuthorization();
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.CustomSchemaIds(type => type.ToString());
+
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "Auth",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.OpenIdConnect,
+        OpenIdConnectUrl = new Uri($"{builder.Configuration["Authentication:Schemes:Bearer:Authority"]}"
+                               + ".well-known/openid-configuration"),
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference
+        {
+            Id = "Bearer",
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+    options.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {securityScheme, Array.Empty<string>()}
+    });
+});
 
 var app = builder.Build();
 
@@ -12,13 +46,22 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.OAuthAppName("Swagger Client");
+        options.OAuthClientId(builder.Configuration["Authentication:Schemes:Bearer:ValidAudiences"]);
+        options.OAuthClientSecret(builder.Configuration["OAuthClientSecret"]);
+    });
+    IdentityModelEventSource.ShowPII = true;
     app.UseCors(policy =>
         policy.AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader()
         );
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseHttpsRedirection();
 
@@ -40,7 +83,8 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast")
-.WithOpenApi();
+.WithOpenApi()
+.RequireAuthorization();
 
 app.Run();
 
