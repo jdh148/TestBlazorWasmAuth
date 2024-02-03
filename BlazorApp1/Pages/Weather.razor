@@ -1,6 +1,6 @@
 ﻿@page "/weather"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@inject HttpClient Http
+@inject IHttpClientFactory ClientFactory
 
 <PageTitle>Weather</PageTitle>
 
@@ -44,7 +44,9 @@ else
     {
         try
         {
-            forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+            var client = ClientFactory.CreateClient("WebAPI");
+
+            forecasts = await client.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         }
         catch (AccessTokenNotAvailableException exception)
         {

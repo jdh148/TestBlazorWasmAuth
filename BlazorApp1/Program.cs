@@ -18,11 +18,13 @@ builder.Services.AddOidcAuthentication(options =>
 
 //builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiServer) });
 
+builder.Services.AddTransient<CustomAuthorizationMessageHandler>();
+
 builder.Services.AddHttpClient("WebAPI",
         client => client.BaseAddress = new Uri(apiServer))
-    .AddHttpMessageHandler<BaseAddressAuthorizationMessageHandler>();
+    .AddHttpMessageHandler<CustomAuthorizationMessageHandler>();
 
-builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>()
-    .CreateClient("WebAPI"));
+//builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>()
+    //.CreateClient("WebAPI"));
 
 await builder.Build().RunAsync();
